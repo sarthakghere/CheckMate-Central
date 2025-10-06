@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 import random
-
+from django.core.mail import send_mail
 
 class CentralAdminManager(BaseUserManager):
     """Custom manager for CentralAdmin model with no username field."""
@@ -85,11 +85,17 @@ class LoginOTP(models.Model):
         return timezone.now() <= self.expires_at
 
     @staticmethod
-    def generate_for_user(user):
+    def generate_for_user(user: CentralAdmin):
         """Create a new OTP for the given user."""
         otp_code = f"{random.randint(100000, 999999)}"
         expires = timezone.now() + timedelta(minutes=5)
         otp_obj = LoginOTP.objects.create(user=user, otp=otp_code, expires_at=expires)
-        # Here you can send OTP via email/SMS
+        send_mail(
+            subject="CheckMate Central - Login OTP",
+            message=f"Your login OTP is: {otp_code}",
+            from_email="sg622857@gmail.com",
+            recipient_list=[user.email],
+            fail_silently=False, 
+        )
         print(f"Generated OTP for {user.email}: {otp_code}")
         return otp_obj
