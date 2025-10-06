@@ -6,10 +6,10 @@ name = "pypi"
 [packages]
 django = "*"
 djangorestframework = "*"
-djangorestframework-api-key = "*"
 django-passkeys = "*"
 django-otp = "*"
 python-dotenv = "*"
+djangorestframework-api-key = "*"
 
 [dev-packages]
 

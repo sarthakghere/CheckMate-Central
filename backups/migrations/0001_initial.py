@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
             name='Backup',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('file', models.FileField(upload_to=backups.models.backup_upload_path)),
+                ('file', models.FileField(upload_to="backups.models.backup_upload_path")),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
                 ('file_size', models.BigIntegerField(blank=True, null=True)),
                 ('checksum', models.CharField(blank=True, help_text='SHA256 checksum', max_length=64, null=True)),
