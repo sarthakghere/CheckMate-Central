@@ -48,18 +48,23 @@ def register_college(request):
         college = College.objects.create(name=name, code=code)
         logger.info(f"New college registered: {college.name} ({college.code}) by {user_info}")
 
+        names = request.POST.getlist("names[]")
         emails = request.POST.getlist("emails[]")
         passwords = request.POST.getlist("passwords[]")
 
-        for email, password in zip(emails, passwords):
-            if email and password:
+        for name, email, password in zip(names, emails, passwords):
+            if name and email and password:
+                first_name = name.split()[0]
+                last_name = " ".join(name.split()[1:]) if len(name.split()) > 1 else ""
                 User.objects.create_user(
                     email=email,
                     password=password,
+                    first_name=first_name,
+                    last_name=last_name,
                     role=User.Role.COLLEGE,
                     college=college
                 )
-                logger.info(f"User {email} added to college {college.code} by {user_info}")
+                logger.info(f"User {email} ({name}) added to college {college.code} by {user_info}")
 
         messages.success(request, f"College '{college.name}' and its users registered successfully.")
         return redirect("users:staff_dashboard")
@@ -70,80 +75,61 @@ def register_college(request):
 
 @login_required
 def manage_college(request, college_id):
-    user_info = get_user_info(request)
+    college = get_object_or_404(College, id=college_id)
+    users = User.objects.filter(college=college, role=User.Role.COLLEGE)
 
     if request.user.role != User.Role.STAFF:
-        logger.warning(f"Unauthorized access to manage_college by {user_info}")
-        return redirect("colleges:college_dashboard")
+        return redirect("users:staff_dashboard")
 
-    college = get_object_or_404(College, id=college_id)
-
-    # Update College Info
-    if request.method == "POST" and "update_college" in request.POST:
-        name = request.POST.get("name")
-        code = request.POST.get("code")
-        if name and code:
-            old_name, old_code = college.name, college.code
-            college.name = name
-            college.code = code
-            college.save()
-            messages.success(request, "College information updated successfully.")
-            logger.info(
-                f"College info updated by {user_info}: "
-                f"{old_name} ({old_code}) → {college.name} ({college.code})"
-            )
+    # Update college info
+    if "update_college" in request.POST:
+        college.name = request.POST.get("name")
+        college.code = request.POST.get("code")
+        college.save()
+        messages.success(request, "College info updated successfully.")
         return redirect("colleges:manage_college", college_id=college.id)
 
-    # Add New User
-    if request.method == "POST" and "add_user" in request.POST:
+    # Remove user
+    if "remove_user" in request.POST:
+        user = get_object_or_404(User, id=request.POST.get("user_id"), college=college)
+        user.delete()
+        messages.success(request, f"User {user.email} removed successfully.")
+        return redirect("colleges:manage_college", college_id=college.id)
+
+    # Edit user
+    if "edit_user" in request.POST:
+        user = get_object_or_404(User, id=request.POST.get("user_id"), college=college)
+        user.email = request.POST.get("email")
+        name = request.POST.get("name")
+        if name:
+            user.first_name = name  # store full name in first_name for simplicity
+        password = request.POST.get("password")
+        if password:
+            user.set_password(password)
+        user.save()
+        messages.success(request, f"User {user.email} updated successfully.")
+        return redirect("colleges:manage_college", college_id=college.id)
+
+    # Add new user
+    if "add_user" in request.POST:
         email = request.POST.get("email")
         password = request.POST.get("password")
-        if email and password:
+        name = request.POST.get("name")
+        first_name = name.split()[0]
+        last_name = " ".join(name.split()[1:]) if len(name.split()) > 1 else ""
+        if email and password and name:
             User.objects.create_user(
                 email=email,
                 password=password,
+                first_name=first_name,
+                last_name=last_name,
                 role=User.Role.COLLEGE,
                 college=college
             )
             messages.success(request, f"User {email} added successfully.")
-            logger.info(f"New user {email} added to {college.name} ({college.code}) by {user_info}")
         return redirect("colleges:manage_college", college_id=college.id)
 
-    # Edit Existing User
-    if request.method == "POST" and "edit_user" in request.POST:
-        user_id = request.POST.get("user_id")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        user = User.objects.filter(id=user_id, college=college).first()
-        if user:
-            old_email = user.email
-            user.email = email
-            if password:
-                user.set_password(password)
-            user.save()
-            messages.success(request, f"User {email} updated successfully.")
-            logger.info(
-                f"User {old_email} updated to {email} for college {college.code} by {user_info}"
-            )
-        return redirect("colleges:manage_college", college_id=college.id)
-
-    # Remove User
-    if request.method == "POST" and "remove_user" in request.POST:
-        user_id = request.POST.get("user_id")
-        user = User.objects.filter(id=user_id, college=college).first()
-        if user:
-            logger.info(
-                f"User {user.email} removed from {college.name} ({college.code}) by {user_info}"
-            )
-            user.delete()
-            messages.success(request, f"User {user.email} removed successfully.")
-        return redirect("colleges:manage_college", college_id=college.id)
-
-    logger.info(f"Manage college page viewed by {user_info} for {college.name} ({college.code})")
-    return render(request, "colleges/manage_college.html", {
-        "college": college,
-        "users": college.users.all(),
-    })
+    return render(request, "colleges/manage_college.html", {"college": college, "users": users})
 
 
 @login_required

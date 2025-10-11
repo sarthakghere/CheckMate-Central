@@ -84,6 +84,10 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+    
+    @property
+    def fullname(self):
+        return self.get_full_name()
 
 class LoginOTP(models.Model):
     """

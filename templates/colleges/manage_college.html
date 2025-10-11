@@ -37,6 +37,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
+                            <th>Full Name</th>
                             <th>Email</th>
                             <th>Actions</th>
                         </tr>
@@ -45,6 +46,7 @@
                         {% for user in users %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
+                            <td>{{ user.fullname }}</td>
                             <td>{{ user.email }}</td>
                             <td>
                                 <!-- Edit User -->
@@ -73,6 +75,10 @@
                                   <input type="hidden" name="edit_user">
                                   <input type="hidden" name="user_id" value="{{ user.id }}">
                                   <div class="mb-3">
+                                      <label>Full Name</label>
+                                      <input type="name" name="name" class="form-control" value="{{ user.fullname }}" required>
+                                  </div>
+                                  <div class="mb-3">
                                       <label>Email</label>
                                       <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
                                   </div>
@@ -99,14 +105,18 @@
                     {% csrf_token %}
                     <input type="hidden" name="add_user">
                     <div class="col-md-5">
+                        <input type="text" name="name" class="form-control" placeholder="Full Name" required>
+                    </div>
+                    <div class="col-md-4">
                         <input type="email" name="email" class="form-control" placeholder="Email" required>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-3">
                         <input type="password" name="password" class="form-control" placeholder="Password" required>
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Add</button>
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary w-100">Add User</button>
                     </div>
+
                 </form>
             </div>
         </div>

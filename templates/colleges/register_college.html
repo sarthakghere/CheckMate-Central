@@ -25,14 +25,20 @@
 
                     <hr>
                     <h5>College Users</h5>
+                    <!-- College Users -->
                     <div id="users-container">
                         <div class="user-entry mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="names[]" class="form-control mb-1" required>
+
                             <label class="form-label">Email</label>
                             <input type="email" name="emails[]" class="form-control mb-1" required>
+
                             <label class="form-label">Password</label>
                             <input type="password" name="passwords[]" class="form-control" required>
                         </div>
                     </div>
+
 
                     <button type="button" id="add-user" class="btn btn-secondary mb-3">Add Another User</button>
 
@@ -50,15 +56,20 @@
     const usersContainer = document.getElementById('users-container');
 
     addUserBtn.addEventListener('click', () => {
-        const userEntry = document.createElement('div');
-        userEntry.classList.add('user-entry', 'mb-3');
-        userEntry.innerHTML = `
-            <label class="form-label">Email</label>
-            <input type="email" name="emails[]" class="form-control mb-1" required>
-            <label class="form-label">Password</label>
-            <input type="password" name="passwords[]" class="form-control" required>
-            <button type="button" class="btn btn-sm btn-danger mt-1 remove-user">Remove</button>
-        `;
+    const userEntry = document.createElement('div');
+    userEntry.classList.add('user-entry', 'mb-3');
+    userEntry.innerHTML = `
+        <label class="form-label">Full Name</label>
+        <input type="text" name="names[]" class="form-control mb-1" required>
+
+        <label class="form-label">Email</label>
+        <input type="email" name="emails[]" class="form-control mb-1" required>
+
+        <label class="form-label">Password</label>
+        <input type="password" name="passwords[]" class="form-control" required>
+
+        <button type="button" class="btn btn-sm btn-danger mt-1 remove-user">Remove</button>
+    `;
         usersContainer.appendChild(userEntry);
 
         // Remove functionality
@@ -66,5 +77,6 @@
             userEntry.remove();
         });
     });
+
 </script>
 {% endblock %}
