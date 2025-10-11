@@ -31,7 +31,7 @@
         <tr>
             <th>#</th>
             <th>College Name</th>
-            <th>Email</th>
+            <th>Users</th>
             <th>API Key</th>
             <th>Last Backup</th>
             <th>Actions</th>
@@ -42,12 +42,8 @@
         <tr>
             <td>{{ forloop.counter }}</td>
             <td>{{ college.name }}</td>
-            <td>
-                {% for user in college.users.all %}
-                    {{ user.email }}{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                    No users
-                {% endfor %}
+            <td class="text-center">
+                {{ college.users.count }}
             </td>
 
             <td>
