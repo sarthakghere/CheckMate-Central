@@ -4,10 +4,33 @@ from users.models import User
 from colleges.models import College
 from rest_framework_api_key.models import APIKey
 from django.contrib import messages
+from django.http import FileResponse
+import os
+from backups.models import Backup
+
+@login_required
+def download_backup(request, backup_id):
+    backup = get_object_or_404(Backup, id=backup_id)
+    file_path = backup.file.path
+
+    # Open file in binary mode
+    response = FileResponse(open(file_path, 'rb'), as_attachment=True, filename=os.path.basename(file_path))
+    return response
 
 @login_required
 def college_dashboard(request):
-    return render(request, "colleges/college_dashboard.html")
+     # assuming the logged-in user is a College
+    college = request.user.college  # or request.user if College is a user model
+
+    users = college.users.all()
+    backups = college.backups.all().order_by('-uploaded_at')
+
+    return render(request, 'colleges/dashboard.html', {
+        'college': college,
+        'users': users,
+        'backups': backups,
+    })
+
 
 @login_required
 def register_college(request):
@@ -109,9 +132,6 @@ def manage_college(request, college_id):
 
 @login_required
 def reset_api_key(request, college_id):
-    # Only staff can access
-    if request.user.role != User.Role.STAFF:
-        return redirect("colleges:college_dashboard")
 
     college = get_object_or_404(College, id=college_id)
 

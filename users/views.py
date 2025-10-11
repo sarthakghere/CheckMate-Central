@@ -60,7 +60,7 @@ def otp_verify(request):
                 if user.role == User.Role.STAFF:
                     return redirect("users:staff_dashboard")
                 elif user.role == User.Role.COLLEGE:
-                    return redirect("users:college_dashboard")
+                    return redirect("colleges:college_dashboard")
             else:
                 otp_obj.delete()
                 return render(request, "users/otp_verify.html", {"error": "OTP expired"})
