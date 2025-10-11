@@ -1,13 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Colleges{% endblock %}
+{% load custom_filters %}
+{% block title %}Colleges - Backups{% endblock %}
 
 {% block content %}
-<h1>Colleges</h1>
-<table class="table table-bordered">
+<h1>Colleges Backups</h1>
+
+<table class="table table-bordered table-hover">
     <thead>
         <tr>
             <th>College</th>
-            <th>Last Backup At</th>
+            <th>Last Backup</th>
             <th>Action</th>
         </tr>
     </thead>
@@ -16,15 +18,23 @@
         <tr>
             <td>{{ college.name }}</td>
             <td>
-                {% if college.backups.last %}
-                    {{ college.backups.last.uploaded_at|date:"M d, Y H:i" }}
-                {% else %}
-                    N/A
-                {% endif %}
+                {% with last_backup=college_last_backups|get_item:college.id %}
+                    {% if last_backup %}
+                        {{ last_backup.uploaded_at|date:"M d, Y H:i" }}
+                    {% else %}
+                        <span class="text-muted">No backups yet</span>
+                    {% endif %}
+                {% endwith %}
             </td>
             <td>
-                <a href="{% url 'backups:college_backup_list' college.id %}" class="btn btn-sm btn-outline-primary">View Backup(s)</a>
+                <a href="{% url 'backups:college_backup_list' college.id %}" class="btn btn-sm btn-outline-primary">
+                    View Backups
+                </a>
             </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="3" class="text-center">No colleges found.</td>
         </tr>
         {% endfor %}
     </tbody>

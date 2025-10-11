@@ -58,7 +58,11 @@ def backup_list(request):
         return HttpResponse("Unauthorized", status=403)
 
     colleges = College.objects.all()
-    context = {"colleges": colleges}
+    # Precompute last backup for better template logic
+    college_last_backups = {
+        college.id: college.backups.order_by('-uploaded_at').first() for college in colleges
+    }
+    context = {"colleges": colleges, "college_last_backups": college_last_backups}
     return render(request, "backups/backup_list.html", context)
 
 
@@ -68,7 +72,7 @@ def college_backup_list(request, college_id):
         return HttpResponse("Unauthorized", status=403)
 
     college = get_object_or_404(College, id=college_id)
-    backups = Backup.objects.filter(college=college)
+    backups = Backup.objects.filter(college=college).order_by('-uploaded_at')
     context = {"college": college, "backups": backups}
     return render(request, "backups/college_backup_list.html", context)
 
@@ -84,6 +88,6 @@ def download_backup(request, backup_id):
     if os.path.exists(file_path):
         with open(file_path, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type="application/octet-stream")
-            response['Content-Disposition'] = f'attachment; filename={os.path.basename(file_path)}'
+            response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
             return response
     raise Http404
