@@ -11,6 +11,9 @@ django-otp = "*"
 python-dotenv = "*"
 djangorestframework-api-key = "*"
 pymysql = "*"
+celery = "*"
+redis = "*"
+gunicorn = "*"
 
 [dev-packages]
 

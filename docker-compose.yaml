@@ -1,0 +1,64 @@
+services:
+  django:
+    build:
+      context: .
+      dockerfile: docker/django.Dockerfile
+    container_name: django
+    command: gunicorn checkmate_central.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8
+    container_name: db
+    restart: always
+    environment:
+      MYSQL_DATABASE: $DB_NAME
+      MYSQL_ROOT_PASSWORD: $DB_PASSWORD
+    volumes:
+      - db_data:/var/lib/mysql
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx.Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./staticfiles:/app/staticfiles/
+      - media_volume:/app/mediafiles/
+    depends_on:
+      - django
+    
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+  
+  celery:
+    build:
+      context: .
+      dockerfile: docker/django.Dockerfile
+    container_name: celery
+    command: celery -A checkmate_central worker -l info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - django
+      - redis
+
+volumes:
+  db_data:
+  static_volume:
+  media_volume:
