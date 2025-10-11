@@ -107,15 +107,27 @@ class LoginOTP(models.Model):
         return True, ""
 
     @staticmethod
-    def generate_for_user(user: User):
-        """Create a new OTP for the given user."""
+    def generate_for_user(user: User, is_resend=False):
+        """Create a new OTP for the given user, or update the existing one if resending."""
         otp_code = f"{random.randint(100000, 999999)}"
         expires = timezone.now() + timedelta(minutes=5)
-        
-        # Clean up old OTPs
-        LoginOTP.objects.filter(user=user).delete()
 
-        otp_obj = LoginOTP.objects.create(user=user, otp=otp_code, expires_at=expires)
+        if is_resend:
+            otp_obj = LoginOTP.objects.filter(user=user).last()
+            if otp_obj:
+                otp_obj.otp = otp_code
+                otp_obj.expires_at = expires
+                otp_obj.last_resend_at = timezone.now()
+                otp_obj.resend_attempts += 1
+                otp_obj.save()
+            else:
+                otp_obj = LoginOTP.objects.create(
+                    user=user, otp=otp_code, expires_at=expires
+                )
+        else:
+            # First OTP, clean old ones
+            LoginOTP.objects.filter(user=user).delete()
+            otp_obj = LoginOTP.objects.create(user=user, otp=otp_code, expires_at=expires)
 
         from django.conf import settings
         try:

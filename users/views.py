@@ -95,24 +95,17 @@ def resend_otp(request):
     if not user_id:
         return redirect("users:login")
 
-    try:
-        user = User.objects.get(id=user_id)
-        old_otp = LoginOTP.objects.filter(user=user).latest("created_at")
-    except (User.DoesNotExist, LoginOTP.DoesNotExist):
-        logger.error("Resend OTP attempted with invalid user or missing OTP record.")
+    user = get_object_or_404(User, id=user_id)
+    otp_obj = LoginOTP.objects.filter(user=user).last()
+    if not otp_obj:
         return redirect("users:login")
 
-    can_resend, error_message = old_otp.can_resend()
+    can_resend, error_message = otp_obj.can_resend()
     if not can_resend:
-        logger.warning(f"Resend OTP blocked for {user.email}: {error_message}")
         return render(request, "users/otp_verify.html", {"error": error_message})
 
-    new_otp = LoginOTP.generate_for_user(user)
-    new_otp.resend_attempts = old_otp.resend_attempts + 1
-    new_otp.last_resend_at = timezone.now()
-    new_otp.save()
-
-    logger.info(f"New OTP resent to {user.email} ({user.role})")
+    # generate a new OTP but mark it as a resend
+    LoginOTP.generate_for_user(user, is_resend=True)
     return redirect("users:otp_verify")
 
 
