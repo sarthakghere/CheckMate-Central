@@ -1,12 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Staff Dashboard</title>
-</head>
-<body>
-    <h1>Welcome, Staff Member!</h1>
-    <p>This is your dashboard.</p>
-    <a href="{% url 'users:logout' %}">Logout</a>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Staff Dashboard{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Welcome, {{ user.username }}</h2>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5>Total Colleges</h5>
+                <h2>{{ total_colleges }}</h2>
+                <a href="{% url 'users:register_college' %}" class="btn btn-sm btn-primary mt-2">Register New</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5>Total Backups</h5>
+                <h2>{{ total_backups }}</h2>
+                <a href="#" class="btn btn-sm btn-primary mt-2">View All</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h4 class="mb-3 mt-4">Registered Colleges</h4>
+<table class="table table-striped table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>College Name</th>
+            <th>Email</th>
+            <th>API Key</th>
+            <th>Last Backup</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for college in colleges %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ college.name }}</td>
+            <td>
+                {% for user in college.users.all %}
+                    {{ user.email }}{% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    No users
+                {% endfor %}
+            </td>
+
+            <td>
+                {% if college.api_key %}
+                    <code>Generated</code>
+                {% else %}
+                    <code>Not generated</code>
+                {% endif %}
+            </td>
+            <td>
+                {% if college.backups.last %}
+                    {{ college.backups.last.uploaded_at|date:"M d, Y H:i" }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="{% url 'users:manage_college' college.id %}" class="btn btn-sm btn-outline-primary">Manage</a>
+                <a href="{% url 'users:reset_api_key' college.id %}" class="btn btn-sm btn-outline-danger">Regenerate</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-center text-muted">No colleges registered yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

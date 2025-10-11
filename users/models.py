@@ -67,6 +67,13 @@ class User(AbstractUser):
     passkey_challenge = models.CharField(max_length=512, blank=True, null=True)
 
     role = models.CharField(max_length=50, choices=Role.choices, default=base_role)
+    college = models.ForeignKey(
+        'colleges.College',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='users'
+    )
 
     # Email is the login field
     USERNAME_FIELD = "email"
