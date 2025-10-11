@@ -21,6 +21,7 @@ from users import views as user_views
 urlpatterns = [
     path('', user_views.landing_page, name='landing_page'),
     path('admin/', admin.site.urls),
+    path("backups/", include("backups.urls")),
     path('api/backups/', include('backups.urls')),
     path('users/', include('users.urls')),
     path('colleges/', include('colleges.urls')),

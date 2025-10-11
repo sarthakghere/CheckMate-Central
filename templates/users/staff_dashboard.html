@@ -19,7 +19,7 @@
             <div class="card-body text-center">
                 <h5>Total Backups</h5>
                 <h2>{{ total_backups }}</h2>
-                <a href="#" class="btn btn-sm btn-primary mt-2">View All</a>
+                <a href="{% url 'backups:backup_list' %}" class="btn btn-sm btn-primary mt-2">View All</a>
             </div>
         </div>
     </div>

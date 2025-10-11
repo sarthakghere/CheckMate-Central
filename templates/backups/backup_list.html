@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Colleges{% endblock %}
+
+{% block content %}
+<h1>Colleges</h1>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>College</th>
+            <th>Last Backup At</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for college in colleges %}
+        <tr>
+            <td>{{ college.name }}</td>
+            <td>
+                {% if college.backups.last %}
+                    {{ college.backups.last.uploaded_at|date:"M d, Y H:i" }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'backups:college_backup_list' college.id %}" class="btn btn-sm btn-outline-primary">View Backup(s)</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

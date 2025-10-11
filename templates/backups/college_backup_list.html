@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Backups - {{college.name}}{% endblock %}
+
+{% block content %}
+<h1>Backups - {{college.name}}</h1>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>File Name</th>
+            <th>Uploaded At</th>
+            <th>File Size</th>
+            <th>Checksum</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for backup in backups %}
+        <tr>
+            <td>{{ backup.file.name|slice:"20:" }}</td>
+            <td>{{ backup.uploaded_at|date:"M d, Y H:i" }}</td>
+            <td>{{ backup.file_size|filesizeformat }}</td>
+            <td>{{ backup.checksum|slice:":16" }}...</td>
+            <td>
+                <a href="{% url 'backups:download_backup' backup.id %}" class="btn btn-sm btn-outline-primary" target="_blank">Download</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No backups for this college.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{% url 'backups:backup_list' %}" class="btn btn-secondary">Back to Colleges</a>
+{% endblock %}
