@@ -16,9 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from users import views as user_views
 
 urlpatterns = [
+    path('', user_views.landing_page, name='landing_page'),
     path('admin/', admin.site.urls),
-    path('', include('superadmins.urls')),
     path('api/backups/', include('backups.urls')),
+    path('users/', include('users.urls')),
 ]
+
+handler404 = 'users.views.landing_page'

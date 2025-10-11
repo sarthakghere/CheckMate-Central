@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-umna*&2l(!vy#qd#(q&(le3dy9%csrv(uyornre5g1en*jh645
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 
 # Application definition
@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'passkeys',
     'colleges',
     'backups',
-    'superadmins',
+    'users', # Renamed from superadmins
 ]
 
 MIDDLEWARE = [
@@ -114,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -134,7 +134,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-AUTH_USER_MODEL = "superadmins.CentralAdmin"
+AUTH_USER_MODEL = "users.User"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"

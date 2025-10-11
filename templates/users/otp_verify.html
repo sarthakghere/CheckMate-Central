@@ -84,6 +84,11 @@
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(0,0,0,0.2);
     }
+    button.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 
     /* Error */
     .error {
@@ -107,12 +112,49 @@
         <p>An OTP has been sent to your registered email.</p>
         <form method="POST">
             {% csrf_token %}
-            <input type="text" name="otp" placeholder="6-digit OTP" maxlength="6" required>
+            <input type="tel" name="otp" placeholder="6-digit OTP" maxlength="6" required inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
             <button type="submit">Verify</button>
         </form>
         {% if error %}
             <p class="error">{{ error }}</p>
         {% endif %}
+        <div class="resend-container">
+            <form method="POST" action="{% url 'users:resend_otp' %}">
+                {% csrf_token %}
+                <button type="submit" id="resend-link" class="disabled" disabled>Resend OTP</button>
+                <span id="timer"></span>
+            </form>
+
+        </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+        const resendLink = document.getElementById("resend-link");
+        const timerSpan = document.getElementById("timer");
+        let countdown = 5;
+
+        function startTimer() {
+            resendLink.disabled = true; // disable button
+            resendLink.classList.add("disabled");
+            timerSpan.textContent = `in ${countdown}s`;
+
+            const interval = setInterval(() => {
+                countdown--;
+                timerSpan.textContent = `in ${countdown}s`;
+
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    timerSpan.textContent = "";
+                    resendLink.disabled = false; // enable again
+                    resendLink.classList.remove("disabled");
+                }
+            }, 1000);
+        }
+
+        startTimer();
+    });
+
+    </script>
 </body>
 </html>
