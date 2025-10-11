@@ -4,11 +4,24 @@ from users.models import User
 from colleges.models import College
 from rest_framework_api_key.models import APIKey
 from django.contrib import messages
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_user_info(request):
+    """Return formatted user info string for logging."""
+    if hasattr(request, "user") and request.user.is_authenticated:
+        return f"{request.user.email} (Role: {getattr(request.user, 'role', 'UNKNOWN')})"
+    return "Anonymous user"
+
 
 @login_required
 def college_dashboard(request):
-     # assuming the logged-in user is a College
-    college = request.user.college  # or request.user if College is a user model
+    user_info = get_user_info(request)
+    college = request.user.college  # assuming user is a college user
+
+    logger.info(f"Dashboard viewed by {user_info} for {college.name} ({college.code})")
 
     users = college.users.all()
     backups = college.backups.all().order_by('-uploaded_at')
@@ -22,17 +35,19 @@ def college_dashboard(request):
 
 @login_required
 def register_college(request):
+    user_info = get_user_info(request)
+
     if request.user.role != User.Role.STAFF:
+        logger.warning(f"Unauthorized college registration attempt by {user_info}")
         return redirect("colleges:college_dashboard")
 
     if request.method == "POST":
         name = request.POST.get("name")
         code = request.POST.get("code")
 
-        # Create College
         college = College.objects.create(name=name, code=code)
+        logger.info(f"New college registered: {college.name} ({college.code}) by {user_info}")
 
-        # Create multiple users
         emails = request.POST.getlist("emails[]")
         passwords = request.POST.getlist("passwords[]")
 
@@ -44,34 +59,42 @@ def register_college(request):
                     role=User.Role.COLLEGE,
                     college=college
                 )
+                logger.info(f"User {email} added to college {college.code} by {user_info}")
 
+        messages.success(request, f"College '{college.name}' and its users registered successfully.")
         return redirect("users:staff_dashboard")
 
+    logger.info(f"College registration form viewed by {user_info}")
     return render(request, "colleges/register_college.html")
+
 
 @login_required
 def manage_college(request, college_id):
+    user_info = get_user_info(request)
+
     if request.user.role != User.Role.STAFF:
+        logger.warning(f"Unauthorized access to manage_college by {user_info}")
         return redirect("colleges:college_dashboard")
 
     college = get_object_or_404(College, id=college_id)
 
-    # --------------------------
     # Update College Info
-    # --------------------------
     if request.method == "POST" and "update_college" in request.POST:
         name = request.POST.get("name")
         code = request.POST.get("code")
         if name and code:
+            old_name, old_code = college.name, college.code
             college.name = name
             college.code = code
             college.save()
             messages.success(request, "College information updated successfully.")
+            logger.info(
+                f"College info updated by {user_info}: "
+                f"{old_name} ({old_code}) → {college.name} ({college.code})"
+            )
         return redirect("colleges:manage_college", college_id=college.id)
 
-    # --------------------------
     # Add New User
-    # --------------------------
     if request.method == "POST" and "add_user" in request.POST:
         email = request.POST.get("email")
         password = request.POST.get("password")
@@ -83,35 +106,40 @@ def manage_college(request, college_id):
                 college=college
             )
             messages.success(request, f"User {email} added successfully.")
+            logger.info(f"New user {email} added to {college.name} ({college.code}) by {user_info}")
         return redirect("colleges:manage_college", college_id=college.id)
 
-    # --------------------------
     # Edit Existing User
-    # --------------------------
     if request.method == "POST" and "edit_user" in request.POST:
         user_id = request.POST.get("user_id")
         email = request.POST.get("email")
         password = request.POST.get("password")
         user = User.objects.filter(id=user_id, college=college).first()
         if user:
+            old_email = user.email
             user.email = email
             if password:
                 user.set_password(password)
             user.save()
             messages.success(request, f"User {email} updated successfully.")
+            logger.info(
+                f"User {old_email} updated to {email} for college {college.code} by {user_info}"
+            )
         return redirect("colleges:manage_college", college_id=college.id)
 
-    # --------------------------
     # Remove User
-    # --------------------------
     if request.method == "POST" and "remove_user" in request.POST:
         user_id = request.POST.get("user_id")
         user = User.objects.filter(id=user_id, college=college).first()
         if user:
+            logger.info(
+                f"User {user.email} removed from {college.name} ({college.code}) by {user_info}"
+            )
             user.delete()
             messages.success(request, f"User {user.email} removed successfully.")
         return redirect("colleges:manage_college", college_id=college.id)
 
+    logger.info(f"Manage college page viewed by {user_info} for {college.name} ({college.code})")
     return render(request, "colleges/manage_college.html", {
         "college": college,
         "users": college.users.all(),
@@ -120,21 +148,22 @@ def manage_college(request, college_id):
 
 @login_required
 def reset_api_key(request, college_id):
+    user_info = get_user_info(request)
 
     college = get_object_or_404(College, id=college_id)
-
     current_key = (college.api_key.prefix + ".......") if college.api_key else None
     new_key = None
 
     if request.method == "POST":
-        # Regenerate API key
         if college.api_key:
-            college.api_key.delete()  # remove old key
+            college.api_key.delete()
+            logger.info(f"Old API key deleted for {college.name} ({college.code}) by {user_info}")
 
         api_key_obj, key = APIKey.objects.create_key(name=f"{college.code}-key")
         college.api_key = api_key_obj
         college.save()
         new_key = key
+        logger.info(f"New API key generated for {college.name} ({college.code}) by {user_info}")
 
     return render(request, "colleges/show_college_api_key.html", {
         "college": college,

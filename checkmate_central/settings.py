@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -144,3 +145,74 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} in {name}: {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname}: {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        # File handlers per app
+        'users_file': {
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIR / 'users.log',
+            'formatter': 'verbose',
+        },
+        'colleges_file': {
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIR / 'colleges.log',
+            'formatter': 'verbose',
+        },
+        'backups_file': {
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIR / 'backups.log',
+            'formatter': 'verbose',
+        },
+        # Optional global Django log
+        'django_file': {
+            'class': 'logging.FileHandler',
+            'filename': LOG_DIR / 'django.log',
+            'formatter': 'verbose',
+        },
+    },
+
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'django_file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'users': {
+            'handlers': ['console', 'users_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'colleges': {
+            'handlers': ['console', 'colleges_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'backups': {
+            'handlers': ['console', 'backups_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
