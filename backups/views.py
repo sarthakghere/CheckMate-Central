@@ -70,8 +70,8 @@ def backup_list(request):
 
 @login_required
 def college_backup_list(request, college_id):
-    if request.user.role != "STAFF":
-        return HttpResponse("Unauthorized", status=403)
+    # if request.user.role != "STAFF":
+    #     return HttpResponse("Unauthorized", status=403)
 
     college = get_object_or_404(College, id=college_id)
     backups = Backup.objects.filter(college=college).order_by('-uploaded_at')
@@ -121,8 +121,6 @@ def college_backup_list(request, college_id):
 
 @login_required
 def download_backup(request, backup_id):
-    if request.user.role != "STAFF":
-        return HttpResponse("Unauthorized", status=403)
 
     backup = get_object_or_404(Backup, id=backup_id)
     file_path = backup.file.path
