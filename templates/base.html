@@ -52,9 +52,9 @@
                 {% if user.is_authenticated %}
                     {% if user.is_staff %}
                         <li class="nav-item"><a class="nav-link" href="{% url 'users:staff_dashboard' %}">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{% url 'users:register_college' %}">Register College</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'colleges:register_college' %}">Register College</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'users:college_dashboard' %}">My Backups</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{% url 'colleges:college_dashboard' %}">My Backups</a></li>
                     {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{% url 'users:logout' %}">Logout</a></li>
                 {% else %}

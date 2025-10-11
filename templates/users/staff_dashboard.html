@@ -10,7 +10,7 @@
             <div class="card-body text-center">
                 <h5>Total Colleges</h5>
                 <h2>{{ total_colleges }}</h2>
-                <a href="{% url 'users:register_college' %}" class="btn btn-sm btn-primary mt-2">Register New</a>
+                <a href="{% url 'colleges:register_college' %}" class="btn btn-sm btn-primary mt-2">Register New</a>
             </div>
         </div>
     </div>
@@ -54,16 +54,17 @@
                 {% endif %}
             </td>
             <td>
-                {% if college.backups.last %}
-                    {{ college.backups.last.uploaded_at|date:"M d, Y H:i" }}
+                {% if college.last_backup_time %}
+                    {{ college.last_backup_time|date:"M d, Y H:i" }}
                 {% else %}
                     N/A
                 {% endif %}
             </td>
 
+
             <td>
-                <a href="{% url 'users:manage_college' college.id %}" class="btn btn-sm btn-outline-primary">Manage</a>
-                <a href="{% url 'users:reset_api_key' college.id %}" class="btn btn-sm btn-outline-danger">Regenerate</a>
+                <a href="{% url 'colleges:manage_college' college.id %}" class="btn btn-sm btn-outline-primary">Manage</a>
+                <a href="{% url 'colleges:reset_api_key' college.id %}" class="btn btn-sm btn-outline-danger">Regenerate</a>
             </td>
         </tr>
         {% empty %}

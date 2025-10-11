@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/backups/', include('backups.urls')),
     path('users/', include('users.urls')),
+    path('colleges/', include('colleges.urls')),
 ]
 
 handler404 = 'users.views.landing_page'

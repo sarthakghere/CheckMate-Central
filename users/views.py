@@ -8,6 +8,7 @@ from colleges.models import College
 from rest_framework_api_key.models import APIKey
 from backups.models import Backup
 from django.contrib import messages
+from django.db.models import Max
 
 
 def landing_page(request, exception = None):
@@ -15,7 +16,7 @@ def landing_page(request, exception = None):
         if request.user.role == User.Role.STAFF:
             return redirect("users:staff_dashboard")
         elif request.user.role == User.Role.COLLEGE:
-            return redirect("users:college_dashboard")
+            return redirect("colleges:college_dashboard")
     return redirect("users:login")
 
 # -----------------------------
@@ -101,10 +102,6 @@ def resend_otp(request):
 
     return redirect("users:otp_verify")
 
-@login_required
-def college_dashboard(request):
-    return render(request, "users/college_dashboard.html")
-
 def user_logout(request):
     logout(request)
     return redirect("users:login")
@@ -114,7 +111,7 @@ def staff_dashboard(request):
     if request.user.role != "STAFF":
         return redirect("users:college_dashboard")
 
-    colleges = College.objects.all().order_by("name")
+    colleges = College.objects.all().order_by("name").annotate(last_backup_time=Max('backups__uploaded_at'))
     total_backups = Backup.objects.count()
     total_colleges = colleges.count()
 
@@ -122,130 +119,4 @@ def staff_dashboard(request):
         "colleges": colleges,
         "total_backups": total_backups,
         "total_colleges": total_colleges,
-    })
-
-
-@login_required
-def register_college(request):
-    if request.user.role != User.Role.STAFF:
-        return redirect("users:college_dashboard")
-
-    if request.method == "POST":
-        name = request.POST.get("name")
-        code = request.POST.get("code")
-
-        # Create College
-        college = College.objects.create(name=name, code=code)
-
-        # Create multiple users
-        emails = request.POST.getlist("emails[]")
-        passwords = request.POST.getlist("passwords[]")
-
-        for email, password in zip(emails, passwords):
-            if email and password:
-                User.objects.create_user(
-                    email=email,
-                    password=password,
-                    role=User.Role.COLLEGE,
-                    college=college
-                )
-
-        return redirect("users:staff_dashboard")
-
-    return render(request, "users/register_college.html")
-
-@login_required
-def manage_college(request, college_id):
-    if request.user.role != User.Role.STAFF:
-        return redirect("users:college_dashboard")
-
-    college = get_object_or_404(College, id=college_id)
-
-    # --------------------------
-    # Update College Info
-    # --------------------------
-    if request.method == "POST" and "update_college" in request.POST:
-        name = request.POST.get("name")
-        code = request.POST.get("code")
-        if name and code:
-            college.name = name
-            college.code = code
-            college.save()
-            messages.success(request, "College information updated successfully.")
-        return redirect("users:manage_college", college_id=college.id)
-
-    # --------------------------
-    # Add New User
-    # --------------------------
-    if request.method == "POST" and "add_user" in request.POST:
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        if email and password:
-            User.objects.create_user(
-                email=email,
-                password=password,
-                role=User.Role.COLLEGE,
-                college=college
-            )
-            messages.success(request, f"User {email} added successfully.")
-        return redirect("users:manage_college", college_id=college.id)
-
-    # --------------------------
-    # Edit Existing User
-    # --------------------------
-    if request.method == "POST" and "edit_user" in request.POST:
-        user_id = request.POST.get("user_id")
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        user = User.objects.filter(id=user_id, college=college).first()
-        if user:
-            user.email = email
-            if password:
-                user.set_password(password)
-            user.save()
-            messages.success(request, f"User {email} updated successfully.")
-        return redirect("users:manage_college", college_id=college.id)
-
-    # --------------------------
-    # Remove User
-    # --------------------------
-    if request.method == "POST" and "remove_user" in request.POST:
-        user_id = request.POST.get("user_id")
-        user = User.objects.filter(id=user_id, college=college).first()
-        if user:
-            user.delete()
-            messages.success(request, f"User {user.email} removed successfully.")
-        return redirect("users:manage_college", college_id=college.id)
-
-    return render(request, "users/manage_college.html", {
-        "college": college,
-        "users": college.users.all(),
-    })
-
-
-@login_required
-def reset_api_key(request, college_id):
-    # Only staff can access
-    if request.user.role != User.Role.STAFF:
-        return redirect("users:college_dashboard")
-
-    college = get_object_or_404(College, id=college_id)
-
-    current_key = (college.api_key.prefix + ".......") if college.api_key else None
-    new_key = None
-
-    if request.method == "POST":
-        # Regenerate API key
-        if college.api_key:
-            college.api_key.delete()  # remove old key
-
-        api_key_obj, key = APIKey.objects.create_key(name=f"{college.code}-key")
-        college.api_key = api_key_obj
-        college.save()
-        new_key = key
-
-    return render(request, "users/show_college_api_key.html", {
-        "college": college,
-        "current_key": current_key,
-        "new_key": new_key
     })
