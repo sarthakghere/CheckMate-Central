@@ -4,6 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 import random
 from django.core.mail import send_mail
+from .tasks import send_login_otp
 
 class UserManager(BaseUserManager):
     """Custom manager for CentralAdmin model with no username field."""
@@ -133,15 +134,8 @@ class LoginOTP(models.Model):
             LoginOTP.objects.filter(user=user).delete()
             otp_obj = LoginOTP.objects.create(user=user, otp=otp_code, expires_at=expires)
 
-        from django.conf import settings
         try:
-            send_mail(
-                subject="CheckMate Central - Login OTP",
-                message=f"Your login OTP is: {otp_code}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
-            )
+            send_login_otp.delay(user.email, otp_code)
         except Exception as e:
             print(f"[WARN] Failed to send OTP email: {e}")
 
