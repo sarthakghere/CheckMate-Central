@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from users.models import User
 from colleges.models import College
-from university.models import University
 from rest_framework_api_key.models import APIKey
 from django.contrib import messages
 import logging
@@ -46,13 +45,7 @@ def register_college(request):
         name = request.POST.get("name")
         code = request.POST.get("code")
 
-        if request.user.is_staff_user:
-            uni_code = request.POST.get("uni_code")
-            university = get_object_or_404(University, code=uni_code)
-        else:
-            university = request.user.university
-
-        college = College.objects.create(name=name, code=code, university=university)
+        college = College.objects.create(name=name, code=code)
         logger.info(f"New college registered: {college.name} ({college.code}) by {user_info}")
 
         names = request.POST.getlist("names[]")
@@ -85,8 +78,8 @@ def manage_college(request, college_id):
     college = get_object_or_404(College, id=college_id)
     users = User.objects.filter(college=college, role=User.Role.COLLEGE)
 
-    if request.user.role not in (User.Role.STAFF, User.Role.UNIVERSITY):
-        return redirect("colleges:dashbaord")
+    if request.user.role != User.Role.STAFF:
+        return redirect("users:staff_dashboard")
 
     # Update college info
     if "update_college" in request.POST:

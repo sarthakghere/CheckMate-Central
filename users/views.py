@@ -19,8 +19,6 @@ def landing_page(request, exception=None):
         logger.info(f"Landing page accessed by authenticated user {request.user.email} ({request.user.role})")
         if request.user.role == User.Role.STAFF:
             return redirect("users:staff_dashboard")
-        if request.user.role == User.Role.UNIVERSITY:
-            return redirect("university:university_dashboard", university_id=request.user.university.id)
         elif request.user.role == User.Role.COLLEGE:
             return redirect("colleges:college_dashboard")
     else:

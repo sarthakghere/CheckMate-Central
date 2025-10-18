@@ -61,7 +61,7 @@ def register_university(request):
 def university_dashboard(request, university_id=None):
     if request.user.role not in (User.Role.UNIVERSITY, User.Role.STAFF):
         logger.warning(f"Unauthorized access attempt to staff dashboard by {request.user.email} ({request.user.role})")
-        return redirect("colleges:college_dashboard")
+        return redirect("users:college_dashboard")
 
     if request.user.role == User.Role.UNIVERSITY:
         university = request.user.university
@@ -69,7 +69,6 @@ def university_dashboard(request, university_id=None):
         university = get_object_or_404(University, id=university_id)
 
     colleges = College.objects.filter(university=university).order_by("name").annotate(last_backup_time=Max('backups__uploaded_at'))
-    users = User.objects.filter(university=university, role=User.Role.UNIVERSITY)
     total_backups = Backup.objects.count()
     total_colleges = colleges.count()
 
@@ -79,5 +78,4 @@ def university_dashboard(request, university_id=None):
         "colleges": colleges,
         "total_backups": total_backups,
         "total_colleges": total_colleges,
-        "users": users,
     })
