@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_api_key',
     'passkeys',
-    'university',
     'colleges',
     'backups',
     'users', # Renamed from superadmins
