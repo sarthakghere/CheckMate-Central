@@ -6,6 +6,7 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from .models import User, LoginOTP
 from colleges.models import College
+from university.models import University
 from rest_framework_api_key.models import APIKey
 from backups.models import Backup
 from django.contrib import messages
@@ -122,13 +123,16 @@ def staff_dashboard(request):
         logger.warning(f"Unauthorized access attempt to staff dashboard by {request.user.email} ({request.user.role})")
         return redirect("users:college_dashboard")
 
+    universities = University.objects.all().order_by("name")
+    total_universities = universities.count()
     colleges = College.objects.all().order_by("name").annotate(last_backup_time=Max('backups__uploaded_at'))
     total_backups = Backup.objects.count()
     total_colleges = colleges.count()
 
     logger.info(f"Staff dashboard accessed by {request.user.email}. Total colleges: {total_colleges}, backups: {total_backups}")
     return render(request, "users/staff_dashboard.html", {
-        "colleges": colleges,
+        "universities": universities,
         "total_backups": total_backups,
         "total_colleges": total_colleges,
+        "total_universities": total_universities,
     })

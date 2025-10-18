@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/backups/', include('backups.urls')),
     path('users/', include('users.urls')),
     path('colleges/', include('colleges.urls')),
+    path('university/', include('university.urls')),
 ]
 
 handler404 = 'users.views.landing_page'

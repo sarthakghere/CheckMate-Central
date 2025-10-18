@@ -38,6 +38,7 @@ class User(AbstractUser):
     Supports email-based login and roles (College, Staff).
     """
     class Role(models.TextChoices):
+        UNIVERSITY = "UNIVERSITY", "University"
         COLLEGE = "COLLEGE", "College"
         STAFF = "STAFF", "Staff"
 
@@ -68,8 +69,16 @@ class User(AbstractUser):
     passkey_challenge = models.CharField(max_length=512, blank=True, null=True)
 
     role = models.CharField(max_length=50, choices=Role.choices, default=base_role)
+
     college = models.ForeignKey(
         'colleges.College',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='users'
+    )
+    university = models.ForeignKey(
+        'university.University',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -83,12 +92,32 @@ class User(AbstractUser):
     # Use the custom manager
     objects = UserManager()
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.email
     
     @property
     def fullname(self):
         return self.get_full_name()
+    
+    @property
+    def is_server_admin(self):
+        return self.is_superuser
+
+    @property
+    def is_university_user(self):
+        return self.role == self.Role.UNIVERSITY
+
+    @property
+    def is_college_user(self):
+        return self.role == self.Role.COLLEGE
+
+    @property
+    def is_staff_user(self):
+        return self.role == self.Role.STAFF
+
 
 class LoginOTP(models.Model):
     """
