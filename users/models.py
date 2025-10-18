@@ -5,6 +5,7 @@ from datetime import timedelta
 import random
 from django.core.mail import send_mail
 from .tasks import send_login_otp
+import os
 
 class UserManager(BaseUserManager):
     """Custom manager for CentralAdmin model with no username field."""
@@ -139,5 +140,6 @@ class LoginOTP(models.Model):
         except Exception as e:
             print(f"[WARN] Failed to send OTP email: {e}")
 
-        print(f"[DEBUG] OTP for {user.email}: {otp_code}")
+        if os.getenv('DEBUG', 'False') == 'True':
+            print(f"[DEBUG] OTP for {user.email}: {otp_code}")
         return otp_obj
