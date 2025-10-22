@@ -110,12 +110,10 @@ def register_college_user(request, college_id):
 def create_college_user_password(request, uuid):
     create_password_request = get_object_or_404(CreatePasswordRequest, uuid=uuid)
     user:User = create_password_request.user
-    if create_password_request.is_complete:
-        messages.info(request, "This password creation link has already been used. Contact support if you need assistance.")
+    if create_password_request.is_complete or create_password_request.is_expired:
+        messages.info(request, "This link has expired. Please contact support to request a new link.")
         return redirect("users:login")
-    if create_password_request.is_expired:
-        messages.error(request, "This password creation link has expired. Please contact support to request a new link.")
-        return redirect("users:login")
+
     else:
         if request.method == "POST":
             form = CreateCollegeUserPasswordForm(request.POST)
@@ -149,6 +147,65 @@ def manage_college(request, college_id):
 
     return render(request, "colleges/manage_college.html", {"college": college, "users": users})
 
+@login_required
+def edit_college_user(request, college_id, user_id):
+    if get_user_role(request) != User.Role.STAFF:
+        return redirect("colleges:college_dashboard")
+
+    college = get_object_or_404(College, id=college_id)
+    user = get_object_or_404(User, id=user_id, college=college, role=User.Role.COLLEGE)
+
+    if request.method == "POST":
+        form = RegisterCollegeUserForm(request.POST, instance=user)
+        form.fields.pop('email', None)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"College user '{user.fullname}' updated successfully.")
+            return redirect("colleges:manage_college", college_id=college.id)
+    else:
+        form = RegisterCollegeUserForm(instance=user)
+        if 'email' in form.fields:
+            form.fields['email'].disabled = True
+
+    return render(request, "colleges/edit_college_user.html", {"form": form, "college": college, "user": user})
+
+@login_required
+def delete_college_user(request, college_id, user_id):
+    if get_user_role(request) != User.Role.STAFF:
+        return redirect("colleges:college_dashboard")
+
+    college = get_object_or_404(College, id=college_id)
+    user = get_object_or_404(User, id=user_id, college=college, role=User.Role.COLLEGE)
+
+    if request.method == "POST":
+        name = user.fullname
+        user.delete()
+        messages.success(request, f"College user '{name}' deleted successfully.")
+        return redirect("colleges:manage_college", college_id=college.id)
+
+    return render(request, "colleges/delete_college_user.html", {"college": college, "user": user})
+
+@login_required
+def trigger_password_reset(request, user_id):
+    """Helper function to trigger password reset for a user."""
+    user = get_object_or_404(User, id=user_id, role=User.Role.COLLEGE)
+
+    # Invalidate any existing password requests
+    CreatePasswordRequest.objects.filter(user=user, is_complete=False).update(is_complete=True)
+    
+    # Create a new password request
+    password_request = CreatePasswordRequest.objects.create(user=user, college=user.college)
+    try:
+        password_link = request.build_absolute_uri(
+            reverse('colleges:create_college_user_password', args=[password_request.uuid])
+        )
+        send_activation_email.delay(user.id, user.college.id, password_link)
+        logger.info(f"Password reset email sent to {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send password reset email to {user.email}: {str(e)}")
+    
+    messages.success(request, f"Password reset link sent to {user.email}.")
+    return redirect("colleges:manage_college", college_id=user.college.id)
 
 @login_required
 def reset_api_key(request, college_id):

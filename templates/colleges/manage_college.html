@@ -29,15 +29,20 @@
                             <th>#</th>
                             <th>Full Name</th>
                             <th>Email</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
-                            <!-- <td>{{ forloop.counter }}</td> -->
-                            <td>{{ user.id }}</td>
-                            <td>{{ user.fullname }}</td>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ user.fullname|default:"-" }}</td>
                             <td>{{ user.email }}</td>
+                            <td>
+                                <a href="{% url 'colleges:edit_college_user' college.id user.id %}" class="btn btn-sm btn-warning">Edit</a>
+                                <a href="{% url 'colleges:delete_college_user' college.id user.id %}" class="btn btn-sm btn-danger">Delete</a>
+                                <a href="{% url 'colleges:trigger_password_reset' user.id %}" class="btn btn-sm btn-dark">Trigger Password Reset</a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
