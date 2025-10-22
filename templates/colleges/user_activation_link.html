@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Set Your Password</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9fafc;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #007bff;
+            color: white !important;
+            text-decoration: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome to {{ college.name }}</h2>
+        <p>Hi {{ user.fullname }},</p>
+        <p>
+            You have been registered as a user for <strong>{{ college.name }}</strong> on the
+            <strong>CheckMate Central</strong> system.
+        </p>
+        <p>
+            To activate your account and set your password, please click the button below:
+        </p>
+        <p style="text-align:center;">
+            <a href="{{ password_link }}" class="button">Set Your Password</a>
+        </p>
+        <p>
+            <strong>Note:</strong> This link will expire in 24 hours and can only be used once.
+        </p>
+        <div class="footer">
+            <p>
+                If you did not expect this email, please contact your college administrator or support immediately.
+            </p>
+            <p>— CheckMate Central Team<br>
+            {{ site_name }} | {{ support_email }}</p>
+        </div>
+    </div>
+</body>
+</html>

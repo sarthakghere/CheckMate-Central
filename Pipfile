@@ -11,11 +11,11 @@ django-otp = "*"
 python-dotenv = "*"
 djangorestframework-api-key = "*"
 pymysql = "*"
-celery = "*"
 redis = "*"
 gunicorn = "*"
 django-crispy-forms = "*"
 crispy-bootstrap5 = "*"
+celery = "*"
 
 [dev-packages]
 

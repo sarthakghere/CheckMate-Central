@@ -6,6 +6,7 @@ import random
 from .tasks import send_login_otp
 from django.conf import settings
 import logging
+import uuid
 
 class UserManager(BaseUserManager):
     """Custom manager for CentralAdmin model with no username field."""
@@ -105,11 +106,17 @@ class CreatePasswordRequest(models.Model):
         on_delete=models.CASCADE,
         related_name='create_password_requests'
     )
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     is_complete = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Create Password Request for {self.user.email} - Used: {self.is_complete}"
+    
+    @property
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(days=1)
+
 
 class LoginOTP(models.Model):
     """

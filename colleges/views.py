@@ -6,6 +6,9 @@ from rest_framework_api_key.models import APIKey
 from django.contrib import messages
 from .forms import RegisterCollegeForm, RegisterCollegeUserForm, CreateCollegeUserPasswordForm
 import logging
+from django.db import transaction
+from colleges.tasks import send_activation_email
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -76,12 +79,23 @@ def register_college_user(request, college_id):
     if request.method == "POST":
         form = RegisterCollegeUserForm(request.POST)
         if form.is_valid():
-            user: User = form.save(commit=False)
-            user.role = User.Role.COLLEGE
-            user.college = college
-            user.set_unusable_password()
-            user.save()
-            CreatePasswordRequest.objects.create(user=user, college=college)
+            with transaction.atomic():
+                user: User = form.save(commit=False)
+                user.role = User.Role.COLLEGE
+                user.college = college
+                user.is_active = False  # Inactive until password is set
+                user.set_unusable_password()
+                user.save()
+                password_request = CreatePasswordRequest.objects.create(user=user, college=college)
+            try:
+                password_link = request.build_absolute_uri(
+                    reverse('colleges:create_college_user_password', args=[password_request.uuid])
+
+                )
+                send_activation_email.delay(user.id, college.id, password_link)
+            except Exception as e:
+                logger.error(f"Failed to send activation email to {user.email}: {str(e)}")
+            
             messages.success(request, f"College user {user.fullname} for college '{college.name}' registered successfully.")
             logger.info(f"New college user registered: {user.fullname} ({user.email}) by {user_info}")
             return redirect("users:staff_dashboard")
@@ -93,21 +107,26 @@ def register_college_user(request, college_id):
 
     return render(request, "colleges/register_college_user.html", {"form": form})
 
-def create_college_user_password(request, user_id):
-    user = get_object_or_404(User, id=user_id, role=User.Role.COLLEGE)
-    create_password_request = get_object_or_404(CreatePasswordRequest, user=user)
+def create_college_user_password(request, uuid):
+    create_password_request = get_object_or_404(CreatePasswordRequest, uuid=uuid)
+    user:User = create_password_request.user
     if create_password_request.is_complete:
         messages.info(request, "This password creation link has already been used. Contact support if you need assistance.")
+        return redirect("users:login")
+    if create_password_request.is_expired:
+        messages.error(request, "This password creation link has expired. Please contact support to request a new link.")
         return redirect("users:login")
     else:
         if request.method == "POST":
             form = CreateCollegeUserPasswordForm(request.POST)
             if form.is_valid():
                 password = form.cleaned_data['password1']
-                user.set_password(password)
-                user.save()
-                create_password_request.is_complete = True
-                create_password_request.save()
+                with transaction.atomic():
+                    user.set_password(password)
+                    user.is_active = True
+                    user.save()
+                    create_password_request.is_complete = True
+                    create_password_request.save()
                 messages.success(request, f"Password set successfully for user {user.fullname}.")
                 logger.info(f"Password set for college user: {user.fullname} ({user.email})")
                 return redirect("users:login")
