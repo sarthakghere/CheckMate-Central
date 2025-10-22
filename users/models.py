@@ -3,9 +3,9 @@ from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 import random
-from django.core.mail import send_mail
 from .tasks import send_login_otp
-import os
+from django.conf import settings
+import logging
 
 class UserManager(BaseUserManager):
     """Custom manager for CentralAdmin model with no username field."""
@@ -135,11 +135,12 @@ class LoginOTP(models.Model):
             LoginOTP.objects.filter(user=user).delete()
             otp_obj = LoginOTP.objects.create(user=user, otp=otp_code, expires_at=expires)
 
+        if settings.DEBUG:
+            print(f"[DEBUG] OTP for {user.email}: {otp_code}")
+
         try:
             send_login_otp.delay(user.email, otp_code)
         except Exception as e:
-            print(f"[WARN] Failed to send OTP email: {e}")
+            logging.getLogger(__name__).warning(f"Failed to send OTP email via Celery: {e}")
 
-        if os.getenv('DEBUG', 'False') == 'True':
-            print(f"[DEBUG] OTP for {user.email}: {otp_code}")
         return otp_obj
