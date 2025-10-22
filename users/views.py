@@ -2,28 +2,34 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.http import require_POST
-from django.utils import timezone
 from .models import User, LoginOTP
 from colleges.models import College
-from rest_framework_api_key.models import APIKey
 from backups.models import Backup
-from django.contrib import messages
+from django.http import HttpResponseNotFound
 from django.db.models import Max
 
 logger = logging.getLogger(__name__)
 
 def landing_page(request, exception=None):
-    if request.user.is_authenticated:
-        logger.info(f"Landing page accessed by authenticated user {request.user.email} ({request.user.role})")
-        if request.user.role == User.Role.STAFF:
-            return redirect("users:staff_dashboard")
-        elif request.user.role == User.Role.COLLEGE:
-            return redirect("colleges:college_dashboard")
-    else:
-        logger.info("Landing page accessed by unauthenticated user.")
-    return redirect("users:login")
+    """
+    Safe landing page / 404 handler:
+    - Redirects authenticated users to dashboards **only if they hit the actual landing page**.
+    - Otherwise, returns a 404 for unknown URLs.
+    """
+    # Only redirect if the requested path is actually root (landing page)
+    if request.path in ['/', '/landing/']:
+        if request.user.is_authenticated:
+            logger.info(f"Landing page accessed by authenticated user {request.user.email} ({request.user.role})")
+            if request.user.role == User.Role.STAFF:
+                return redirect("users:staff_dashboard")
+            elif request.user.role == User.Role.COLLEGE:
+                return redirect("colleges:college_dashboard")
+        else:
+            logger.info("Landing page accessed by unauthenticated user.")
+            return redirect("users:login")
 
+    # For all other URLs, return normal 404
+    return HttpResponseNotFound("Page not found")
 
 # -----------------------------
 # Step 1: Email + Password

@@ -17,7 +17,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from users import views as user_views
-from colleges.views import create_college_user_password
 
 urlpatterns = [
     path('', user_views.landing_page, name='landing_page'),
