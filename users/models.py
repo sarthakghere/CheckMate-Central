@@ -84,12 +84,32 @@ class User(AbstractUser):
     # Use the custom manager
     objects = UserManager()
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.email
     
     @property
     def fullname(self):
         return self.get_full_name()
+    
+class CreatePasswordRequest(models.Model):
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='create_password_requests'
+    )
+    college = models.ForeignKey(
+        'colleges.College',
+        on_delete=models.CASCADE,
+        related_name='create_password_requests'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_complete = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Create Password Request for {self.user.email} - Used: {self.is_complete}"
 
 class LoginOTP(models.Model):
     """

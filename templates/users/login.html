@@ -84,6 +84,10 @@ input:focus {
         margin-top: 15px;
     }
 
+    .alert{
+        color:rgb(0, 90, 14);
+    }
+
     /* Responsive */
     @media (max-width: 400px) {
         .container {
@@ -96,6 +100,11 @@ input:focus {
 <body>
     <div class="container">
         <h2>CheckMate Central</h2>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} mt-3">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
         <form method="POST">
             {% csrf_token %}
             <input type="email" name="email" placeholder="Email" required>

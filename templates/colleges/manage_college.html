@@ -5,25 +5,14 @@
 <div class="row justify-content-center mt-5">
     <div class="col-md-8">
 
-        <!-- College Info -->
-        <div class="card shadow-sm mb-4">
+        <!-- College Details -->
+        <div class="card mb-4 shadow-sm">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">Edit College Info</h4>
+                <h5 class="mb-0">College Details</h5>
             </div>
             <div class="card-body">
-                <form method="post" class="row g-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="update_college">
-                    <div class="col-md-6">
-                        <input type="text" name="name" class="form-control" value="{{ college.name }}" placeholder="College Name" required>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="text" name="code" class="form-control" value="{{ college.code }}" placeholder="College Code" required>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-success w-100">Update</button>
-                    </div>
-                </form>
+                <p><strong>Name:</strong> {{ college.name }}</p>
+                <p><strong>Code:</strong> {{ college.code }}</p>
             </div>
         </div>
 
@@ -40,86 +29,23 @@
                             <th>#</th>
                             <th>Full Name</th>
                             <th>Email</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
                         <tr>
-                            <td>{{ forloop.counter }}</td>
+                            <!-- <td>{{ forloop.counter }}</td> -->
+                            <td>{{ user.id }}</td>
                             <td>{{ user.fullname }}</td>
                             <td>{{ user.email }}</td>
-                            <td>
-                                <!-- Edit User -->
-                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">Edit</button>
-
-                                <!-- Remove User -->
-                                <form method="post" class="d-inline">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="user_id" value="{{ user.id }}">
-                                    <button type="submit" name="remove_user" class="btn btn-sm btn-danger">Remove</button>
-                                </form>
-                            </td>
                         </tr>
-
-                        <!-- Edit User Modal -->
-                        <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-hidden="true">
-                          <div class="modal-dialog">
-                            <div class="modal-content">
-                              <div class="modal-header">
-                                <h5 class="modal-title">Edit User {{ user.email }}</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                              </div>
-                              <form method="post">
-                                {% csrf_token %}
-                                <div class="modal-body">
-                                  <input type="hidden" name="edit_user">
-                                  <input type="hidden" name="user_id" value="{{ user.id }}">
-                                  <div class="mb-3">
-                                      <label>Full Name</label>
-                                      <input type="name" name="name" class="form-control" value="{{ user.fullname }}" required>
-                                  </div>
-                                  <div class="mb-3">
-                                      <label>Email</label>
-                                      <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
-                                  </div>
-                                  <div class="mb-3">
-                                      <label>Password (leave blank to keep current)</label>
-                                      <input type="password" name="password" class="form-control">
-                                  </div>
-                                </div>
-                                <div class="modal-footer">
-                                  <button type="submit" class="btn btn-primary">Save Changes</button>
-                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                </div>
-                              </form>
-                            </div>
-                          </div>
-                        </div>
                         {% endfor %}
                     </tbody>
                 </table>
                 </div>
 
                 <hr>
-                <h6>Add New User</h6>
-                <form method="post" class="row g-2">
-                    {% csrf_token %}
-                    <input type="hidden" name="add_user">
-                    <div class="col-md-5">
-                        <input type="text" name="name" class="form-control" placeholder="Full Name" required>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="email" name="email" class="form-control" placeholder="Email" required>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="password" name="password" class="form-control" placeholder="Password" required>
-                    </div>
-                    <div class="col-12 mt-2">
-                        <button type="submit" class="btn btn-primary w-100">Add User</button>
-                    </div>
-
-                </form>
+                <a href="{% url 'colleges:register_college_user' college.id %}" class="btn btn-success">Add New User</a>
             </div>
         </div>
 

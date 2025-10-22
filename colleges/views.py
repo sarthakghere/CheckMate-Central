@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from users.models import User
+from users.models import User, CreatePasswordRequest
 from colleges.models import College
 from rest_framework_api_key.models import APIKey
 from django.contrib import messages
+from .forms import RegisterCollegeForm, RegisterCollegeUserForm, CreateCollegeUserPasswordForm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,13 @@ def get_user_info(request):
         return f"{request.user.email} (Role: {getattr(request.user, 'role', 'UNKNOWN')})"
     return "Anonymous user"
 
+def get_user_role(request):
+    """Return the role of the logged-in user."""
+    if hasattr(request, "user") and request.user.is_authenticated:
+        if request.user.role == User.Role.STAFF:
+            return User.Role.STAFF
+        elif request.user.role == User.Role.COLLEGE:
+            return User.Role.COLLEGE
 
 @login_required
 def college_dashboard(request):
@@ -37,97 +45,88 @@ def college_dashboard(request):
 def register_college(request):
     user_info = get_user_info(request)
 
-    if request.user.role != User.Role.STAFF:
+    if get_user_role(request) != User.Role.STAFF:
         logger.warning(f"Unauthorized college registration attempt by {user_info}")
         return redirect("colleges:college_dashboard")
 
     if request.method == "POST":
-        name = request.POST.get("name")
-        code = request.POST.get("code")
+        form = RegisterCollegeForm(request.POST)
+        if form.is_valid():
+            college = form.save()
+            messages.success(request, f"College '{college.name}' registered successfully.")
+            logger.info(f"New college registered: {college.name} ({college.code}) by {user_info}")
+            return redirect("users:staff_dashboard")
+        else:
+            logger.warning(f"Invalid college registration attempt by {user_info}: {form.errors.as_text()}")
+    else:
+        form = RegisterCollegeForm()
+        logger.info(f"College registration form viewed by {user_info}")
 
-        college = College.objects.create(name=name, code=code)
-        logger.info(f"New college registered: {college.name} ({college.code}) by {user_info}")
+    return render(request, "colleges/register_college.html", {"form": form})
 
-        names = request.POST.getlist("names[]")
-        emails = request.POST.getlist("emails[]")
-        passwords = request.POST.getlist("passwords[]")
+@login_required
+def register_college_user(request, college_id):
+    user_info = get_user_info(request)
+    college = get_object_or_404(College, id=college_id)
 
-        for name, email, password in zip(names, emails, passwords):
-            if name and email and password:
-                first_name = name.split()[0]
-                last_name = " ".join(name.split()[1:]) if len(name.split()) > 1 else ""
-                User.objects.create_user(
-                    email=email,
-                    password=password,
-                    first_name=first_name,
-                    last_name=last_name,
-                    role=User.Role.COLLEGE,
-                    college=college
-                )
-                logger.info(f"User {email} ({name}) added to college {college.code} by {user_info}")
+    if get_user_role(request) != User.Role.STAFF:
+        logger.warning(f"Unauthorized college user registration attempt by {user_info}")
+        return redirect("colleges:college_dashboard")
 
-        messages.success(request, f"College '{college.name}' and its users registered successfully.")
-        return redirect("users:staff_dashboard")
+    if request.method == "POST":
+        form = RegisterCollegeUserForm(request.POST)
+        if form.is_valid():
+            user: User = form.save(commit=False)
+            user.role = User.Role.COLLEGE
+            user.college = college
+            user.set_unusable_password()
+            user.save()
+            CreatePasswordRequest.objects.create(user=user, college=college)
+            messages.success(request, f"College user {user.fullname} for college '{college.name}' registered successfully.")
+            logger.info(f"New college user registered: {user.fullname} ({user.email}) by {user_info}")
+            return redirect("users:staff_dashboard")
+        else:
+            logger.warning(f"Invalid college user registration attempt by {user_info}: {form.errors.as_text()}")
+    else:
+        form = RegisterCollegeUserForm()
+        logger.info(f"College user registration form viewed by {user_info}")
 
-    logger.info(f"College registration form viewed by {user_info}")
-    return render(request, "colleges/register_college.html")
+    return render(request, "colleges/register_college_user.html", {"form": form})
 
+def create_college_user_password(request, user_id):
+    user = get_object_or_404(User, id=user_id, role=User.Role.COLLEGE)
+    create_password_request = get_object_or_404(CreatePasswordRequest, user=user)
+    if create_password_request.is_complete:
+        messages.info(request, "This password creation link has already been used. Contact support if you need assistance.")
+        return redirect("users:login")
+    else:
+        if request.method == "POST":
+            form = CreateCollegeUserPasswordForm(request.POST)
+            if form.is_valid():
+                password = form.cleaned_data['password1']
+                user.set_password(password)
+                user.save()
+                create_password_request.is_complete = True
+                create_password_request.save()
+                messages.success(request, f"Password set successfully for user {user.fullname}.")
+                logger.info(f"Password set for college user: {user.fullname} ({user.email})")
+                return redirect("users:login")
+            else:
+                logger.warning(f"Invalid password creation attempt: {form.errors.as_text()}")
+        else:
+            form = CreateCollegeUserPasswordForm()
+            logger.info(f"Password creation form viewed for user {user.fullname} ({user.email})")
+
+    return render(request, "colleges/create_college_user_password.html", {"form": form, "user": user})
 
 @login_required
 def manage_college(request, college_id):
+
+    if get_user_role(request) != User.Role.STAFF:
+        return redirect("colleges:college_dashboard")
+
     college = get_object_or_404(College, id=college_id)
     users = User.objects.filter(college=college, role=User.Role.COLLEGE)
-
-    if request.user.role != User.Role.STAFF:
-        return redirect("users:staff_dashboard")
-
-    # Update college info
-    if "update_college" in request.POST:
-        college.name = request.POST.get("name")
-        college.code = request.POST.get("code")
-        college.save()
-        messages.success(request, "College info updated successfully.")
-        return redirect("colleges:manage_college", college_id=college.id)
-
-    # Remove user
-    if "remove_user" in request.POST:
-        user = get_object_or_404(User, id=request.POST.get("user_id"), college=college)
-        user.delete()
-        messages.success(request, f"User {user.email} removed successfully.")
-        return redirect("colleges:manage_college", college_id=college.id)
-
-    # Edit user
-    if "edit_user" in request.POST:
-        user = get_object_or_404(User, id=request.POST.get("user_id"), college=college)
-        user.email = request.POST.get("email")
-        name = request.POST.get("name")
-        if name:
-            user.first_name = name  # store full name in first_name for simplicity
-        password = request.POST.get("password")
-        if password:
-            user.set_password(password)
-        user.save()
-        messages.success(request, f"User {user.email} updated successfully.")
-        return redirect("colleges:manage_college", college_id=college.id)
-
-    # Add new user
-    if "add_user" in request.POST:
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-        name = request.POST.get("name")
-        first_name = name.split()[0]
-        last_name = " ".join(name.split()[1:]) if len(name.split()) > 1 else ""
-        if email and password and name:
-            User.objects.create_user(
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                role=User.Role.COLLEGE,
-                college=college
-            )
-            messages.success(request, f"User {email} added successfully.")
-        return redirect("colleges:manage_college", college_id=college.id)
 
     return render(request, "colleges/manage_college.html", {"college": college, "users": users})
 
