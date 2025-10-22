@@ -1,0 +1,6 @@
+.env
+.Pipfile.lock
+logs
+.vscode
+.git
+media
