@@ -1,46 +1,25 @@
 services:
   django:
-    build:
-      context: .
-      dockerfile: docker/django.Dockerfile
-    container_name: django
-    command: gunicorn checkmate_central.wsgi:application --bind 0.0.0.0:8000
-    volumes:
-      - .:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
+    image: sarthakghere/checkmate_central-django:latest
     env_file:
       - .env
-    depends_on:
-      - db
-
-  db:
-    image: mysql:8
-    container_name: db
-    restart: always
-    environment:
-      MYSQL_DATABASE: $DB_NAME
-      MYSQL_ROOT_PASSWORD: $DB_PASSWORD
     volumes:
-      - db_data:/var/lib/mysql
+      - media_volume:/app/mediafiles
+      - ./staticfiles:/app/staticfiles
 
   nginx:
-    build:
-      context: .
-      dockerfile: docker/nginx.Dockerfile
-    container_name: nginx
+    image: sarthakghere/checkmate_central-nginx:latest
     ports:
       - "80:80"
-      - "443:443" 
+      - "443:443"
     volumes:
-      - ./staticfiles:/app/staticfiles/
-      - media_volume:/app/mediafiles/
       - /home/ubuntu/certs/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro
       - /home/ubuntu/certs/privkey.pem:/etc/ssl/private/privkey.pem:ro
-
+      - ./staticfiles:/app/staticfiles:ro
+      - media_volume:/app/mediafiles:ro
     depends_on:
       - django
-    
+
   redis:
     image: redis:7
     container_name: redis
@@ -49,13 +28,9 @@ services:
       - "6379:6379"
   
   celery:
-    build:
-      context: .
-      dockerfile: docker/django.Dockerfile
+    image: sarthakghere/checkmate_central-django:latest
     container_name: celery
     command: celery -A checkmate_central worker -l info
-    volumes:
-      - .:/app
     env_file:
       - .env
     depends_on:
@@ -63,6 +38,4 @@ services:
       - redis
 
 volumes:
-  db_data:
-  static_volume:
   media_volume:
