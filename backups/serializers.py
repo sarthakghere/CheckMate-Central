@@ -8,7 +8,6 @@ class BackupUploadSerializer(serializers.ModelSerializer):
         fields = ['file', 'remarks']
 
     def create(self, validated_data):
-        # Compute checksum
         file_obj = validated_data['file']
         file_obj.seek(0)
         sha256 = hashlib.sha256()

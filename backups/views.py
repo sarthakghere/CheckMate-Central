@@ -14,6 +14,8 @@ from .models import Backup
 from io import BytesIO
 import zipfile
 import logging
+from tempfile import NamedTemporaryFile
+from .utils.encryption import decrypt_file
 
 logger = logging.getLogger(__name__)
 
@@ -132,8 +134,15 @@ def college_backup_list(request, college_id):
         with zipfile.ZipFile(zip_buffer, 'a', zipfile.ZIP_DEFLATED, False) as zip_file:
             for backup in backups:
                 if os.path.exists(backup.file.path):
-                    relative_path = os.path.join(college.code, os.path.basename(backup.file.name))
-                    zip_file.write(backup.file.path, relative_path)
+                    if backup.is_encrypted:
+                        with NamedTemporaryFile(delete=False) as temp_file:
+                            decrypt_file(backup.file.path, temp_file.name)
+                            temp_file.seek(0)
+                            relative_path = os.path.join(college.code, os.path.basename(backup.file.name).replace(".enc", ""))
+                            zip_file.write(temp_file.name, relative_path)
+                    else:
+                        relative_path = os.path.join(college.code, os.path.basename(backup.file.name))
+                        zip_file.write(backup.file.path, relative_path)
                 else:
                     logger.error(
                         f"Backup file not found on disk for {college.code}: {backup.file.path}"
@@ -169,24 +178,27 @@ def college_backup_list(request, college_id):
     }
     return render(request, "backups/college_backup_list.html", context)
 
-
 @login_required
 def download_backup(request, backup_id):
     user_info = get_user_info(request)
     backup = get_object_or_404(Backup, id=backup_id)
     file_path = backup.file.path
 
-    if os.path.exists(file_path):
-        logger.info(
-            f"Individual backup downloaded by {user_info} "
-            f"({backup.college.code}) - {os.path.basename(file_path)}"
-        )
+    if not os.path.exists(file_path):
+        logger.error(f"Missing backup for {user_info}: {file_path}")
+        raise Http404
+
+    logger.info(f"Backup downloaded by {user_info} ({backup.college.code}) - {file_path}")
+
+    if backup.is_encrypted:
+        with NamedTemporaryFile(delete=False) as temp_file:
+            decrypt_file(file_path, temp_file.name)
+            temp_file.seek(0)
+            response = HttpResponse(temp_file.read(), content_type="application/octet-stream")
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path).replace(".enc", "")}"'
+    else:
         with open(file_path, 'rb') as fh:
             response = HttpResponse(fh.read(), content_type="application/octet-stream")
             response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-            return response
 
-    logger.error(
-        f"Backup file missing for download request by {user_info}: {file_path}"
-    )
-    raise Http404
+    return response
